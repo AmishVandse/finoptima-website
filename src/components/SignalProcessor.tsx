@@ -5,57 +5,31 @@ import {
   TextField,
   Typography,
   Paper,
-  CircularProgress,
-  Alert,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
 } from '@mui/material';
-import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
-
-const lambdaClient = new LambdaClient({
-  region: 'us-east-2',
-  credentials: {
-    accessKeyId: process.env.VITE_AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.VITE_AWS_SECRET_ACCESS_KEY || '',
-  },
-});
 
 const SignalProcessor: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any | null>(null);
   const [signalType, setSignalType] = useState<string>('');
   const [signalData, setSignalData] = useState<string>('');
+  const [result, setResult] = useState<any | null>(null);
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError(null);
-    
+  const handleSubmit = () => {
     try {
-      const payload = {
-        signalType,
-        signalData: JSON.parse(signalData),
+      // Mock processing
+      const mockResult = {
+        status: 'success',
+        processedData: JSON.parse(signalData),
+        timestamp: new Date().toISOString(),
       };
-
-      const command = new InvokeCommand({
-        FunctionName: 'routeFideoSignals',
-        Payload: JSON.stringify(payload),
+      setResult(mockResult);
+    } catch (error) {
+      setResult({
+        status: 'error',
+        message: 'Invalid JSON data',
       });
-
-      const response = await lambdaClient.send(command);
-      
-      if (response.StatusCode === 200) {
-        const result = JSON.parse(new TextDecoder().decode(response.Payload));
-        setResult(result);
-      } else {
-        throw new Error('Failed to process signal');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -94,17 +68,11 @@ const SignalProcessor: React.FC = () => {
         <Button
           variant="contained"
           onClick={handleSubmit}
-          disabled={loading || !signalType || !signalData}
+          disabled={!signalType || !signalData}
           sx={{ mb: 2 }}
         >
-          {loading ? <CircularProgress size={24} /> : 'Process Signal'}
+          Process Signal
         </Button>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
 
         {result && (
           <Box sx={{ mt: 2 }}>
@@ -126,4 +94,4 @@ const SignalProcessor: React.FC = () => {
   );
 };
 
-export default SignalProcessor; 
+export default SignalProcessor;

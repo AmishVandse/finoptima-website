@@ -34,12 +34,10 @@ const SignalProcessor: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Paper elevation={0} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Process Signal
-        </Typography>
-        
+    <div className="container">
+      <div className="upload-section">
+        <h2>Upload Files</h2>
+        <input type="file" />
         <FormControl fullWidth sx={{ mb: 2 }}>
           <InputLabel>Signal Type</InputLabel>
           <Select
@@ -89,8 +87,8 @@ const SignalProcessor: React.FC = () => {
             </pre>
           </Box>
         )}
-      </Paper>
-    </Box>
+      </div>
+    </div>
   );
 };
 

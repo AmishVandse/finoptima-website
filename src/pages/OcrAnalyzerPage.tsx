@@ -15,8 +15,12 @@ import {
   FormControl,
   InputLabel,
   Grid,
+  Alert,
+  Snackbar,
+  CircularProgress,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { OcrService } from '../services/ApiService';
 
 const socialPlatforms = [
   'Twitter',
@@ -36,6 +40,12 @@ const OcrAnalyzerPage: React.FC = () => {
   const [socialType, setSocialType] = useState(socialPlatforms[0]);
   const [socialValue, setSocialValue] = useState('');
   const [socials, setSocials] = useState<{ type: string; value: string }[]>([]);
+  
+  // Status handling
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<any | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   // File upload handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,8 +89,70 @@ const OcrAnalyzerPage: React.FC = () => {
     setSocials(socials.filter((_, i) => i !== idx));
   };
 
+  // Submit handler
+  const handleSubmit = async (isRerun = false) => {
+    if (selectedFiles.length === 0 && !isRerun) {
+      setError("Please select at least one file");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Create metadata object
+      const metadata = {
+        emails,
+        phones,
+        socials,
+      };
+
+      // Send to server using our service
+      const data = await OcrService.analyzeFiles(selectedFiles, metadata, isRerun);
+      setResult(data);
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error('Error submitting OCR analysis:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setSnackbarOpen(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle direct JSON submission (for testing)
+  const handleJsonSubmit = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Create metadata object
+      const metadata = {
+        emails,
+        phones,
+        socials,
+      };
+
+      // Send as JSON using our service
+      const data = await OcrService.analyzeJson(metadata);
+      setResult(data);
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error('Error submitting OCR analysis:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setSnackbarOpen(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   return (
-    <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
         <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
           Upload Files
@@ -227,18 +299,69 @@ const OcrAnalyzerPage: React.FC = () => {
 
       <Grid container spacing={2} sx={{ mt: 2 }}>
         <Grid item xs={6}>
-          <Button fullWidth variant="contained" color="success" size="large">
-            Run
+          <Button 
+            fullWidth 
+            variant="contained" 
+            color="success" 
+            size="large"
+            onClick={() => handleSubmit(false)}
+            disabled={isLoading}
+          >
+            {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Run'}
           </Button>
         </Grid>
         <Grid item xs={6}>
-          <Button fullWidth variant="contained" color="primary" size="large">
-            Rerun
+          <Button 
+            fullWidth 
+            variant="contained" 
+            color="primary" 
+            size="large"
+            onClick={() => handleSubmit(true)}
+            disabled={isLoading}
+          >
+            {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Rerun'}
           </Button>
         </Grid>
       </Grid>
+
+      {/* Results Section */}
+      {result && (
+        <Paper elevation={1} sx={{ p: 3, mt: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Results:
+          </Typography>
+          <Box 
+            component="pre" 
+            sx={{ 
+              bgcolor: 'background.default', 
+              p: 2, 
+              borderRadius: 1, 
+              overflow: 'auto',
+              maxHeight: '300px',
+              fontSize: '0.875rem'
+            }}
+          >
+            {JSON.stringify(result, null, 2)}
+          </Box>
+        </Paper>
+      )}
+
+      {/* Notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={error ? "error" : "success"} 
+          sx={{ width: '100%' }}
+        >
+          {error || "OCR analysis completed successfully!"}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
 
-export default OcrAnalyzerPage; 
+export default OcrAnalyzerPage;
